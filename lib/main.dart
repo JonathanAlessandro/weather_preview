@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'weather_service.dart';
 import 'location_service.dart';
+import 'location_search_service.dart';
+import 'widgets/location_search_dialog.dart';
 import 'widgets/cycling_scene.dart';
 import 'widgets/item_detalhe.dart';
 import 'widgets/titulo_secao.dart';
@@ -9,10 +11,11 @@ import 'widgets/titulo_secao.dart';
 void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, this.service, this.locationService});
+  const MyApp({super.key, this.service, this.locationService, this.searchService});
 
   final WeatherService? service;
   final LocationService? locationService;
+  final LocationSearchService? searchService;
 
   @override
   Widget build(BuildContext context) {
@@ -22,16 +25,18 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
       ),
       home: WeatherPage(service: service ?? WeatherService(),
-        locationService: locationService ?? LocationService()),
+        locationService: locationService ?? LocationService(),
+        searchService: searchService ?? LocationSearchService()),
     );
   }
 }
 
 class WeatherPage extends StatefulWidget {
-  const WeatherPage({super.key, required this.service, required this.locationService});
+  const WeatherPage({super.key, required this.service, required this.locationService, required this.searchService});
 
   final WeatherService service;
   final LocationService locationService;
+  final LocationSearchService searchService;
 
   @override
   State<WeatherPage> createState() => _WeatherPageState();
@@ -51,17 +56,17 @@ class _WeatherPageState extends State<WeatherPage> {
     _refresh();
   }
 
-  Future<void> _refresh({bool locate = false}) async {
+  Future<void> _refresh({bool locate = false, WeatherLocation? selectedPlace}) async {
     if (_loading) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      var place = _place;
-      var usingLocation = _usingLocation;
+      var place = selectedPlace ?? _place;
+      var usingLocation = selectedPlace == null && _usingLocation;
       String? locationMessage;
-      if (locate || _usingLocation) {
+      if (selectedPlace == null && (locate || _usingLocation)) {
         try {
           place = await widget.locationService.current();
           usingLocation = true;
@@ -76,7 +81,7 @@ class _WeatherPageState extends State<WeatherPage> {
           _weather = weather;
           _place = place;
           _usingLocation = usingLocation;
-          if (locationMessage != null || usingLocation) {
+          if (locationMessage != null || usingLocation || selectedPlace != null) {
             _locationMessage = locationMessage;
           }
         });
@@ -91,6 +96,14 @@ class _WeatherPageState extends State<WeatherPage> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _searchLocation() async {
+    final location = await showDialog<WeatherLocation>(
+      context: context,
+      builder: (_) => LocationSearchDialog(service: widget.searchService),
+    );
+    if (mounted && location != null) await _refresh(selectedPlace: location);
   }
 
   String _number(double value) => value.toStringAsFixed(0);
@@ -131,6 +144,11 @@ class _WeatherPageState extends State<WeatherPage> {
             const TituloSecao(titulo: 'Cidade'),
             Text(_place.label,
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            TextButton.icon(
+              onPressed: _loading ? null : _searchLocation,
+              icon: const Icon(Icons.search),
+              label: const Text('Pesquisar cidade'),
+            ),
             TextButton.icon(
               onPressed: _loading ? null : () => _refresh(locate: true),
               icon: const Icon(Icons.my_location),

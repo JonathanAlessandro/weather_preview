@@ -21,6 +21,20 @@ para as coordenadas consultadas (timezone=auto).
 Em falhas de conexão, a última consulta permanece visível com aviso de dados
 possivelmente desatualizados. Não há valores meteorológicos fictícios como fallback.
 
+## Pesquisar cidade
+
+O botão **Pesquisar cidade** abre a busca por nome. Digite pelo menos dois
+caracteres e toque em **Buscar** (ou na tecla de busca do teclado).
+Os resultados mostram cidade, estado/região e país para distinguir locais
+com nomes iguais. Selecione um resultado para consultar a previsão dele.
+
+A busca usa a API de geocodificação Open-Meteo e precisa de internet, sem
+permissão de GPS. Há avisos para busca sem resultados e falhas de conexão.
+Depois de escolher uma cidade, Atualizar e puxar a tela mantêm esse local;
+**Usar minha localização** volta ao modo de localização do aparelho.
+Se a previsão da cidade escolhida falhar, os dados e o local anteriores são
+preservados. A seleção vale durante a sessão atual do aplicativo.
+
 ## Localização do usuário (Android)
 
 Ao abrir o aplicativo, o Android solicita acesso à localização durante o uso.
