@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../scene/scene_weather.dart';
+import '../../scene/dog_gait.dart';
 
 /// Versões vetoriais locais: a roupa e o pelo acompanham as articulações.
 class WeatherCharacters {
@@ -165,7 +166,7 @@ class WeatherCharacters {
     canvas.save();
     canvas.translate(bounds.left, bounds.top);
     canvas.scale(bounds.width / 100, bounds.height / 75);
-    final stride = phase * math.pi * 32;
+    final stride = DogGait.cycleAt(phase) * math.pi * 2;
     const bob = 0.0;
     final fur = wet ? const Color(0xFF18242D) : const Color(0xFF2B3039);
     final shine = wet ? const Color(0xFF647781) : const Color(0xFF444A55);
@@ -179,16 +180,20 @@ class WeatherCharacters {
             ..strokeCap = StrokeCap.round,
         );
     canvas.translate(0, bob);
-    // As quatro patas usam fases opostas, sem depender de sprites adicionais.
-    for (var i = 0; i < 4; i++) {
+    // Patas distantes primeiro; pares diagonais alternam apoio e avanço.
+    for (final i in [0, 2, 1, 3]) {
       final hip = i < 2 ? 27.0 : 63.0;
-      final swing = math.sin(stride + (i.isEven ? 0 : math.pi)) * 12;
-      stroke(Offset(hip, 43), Offset(hip + swing, 57), fur, wet ? 7 : 9);
-      final lift =
-          math.max(0.0, math.sin(stride + (i.isEven ? 0 : math.pi))) * 8;
-      final paw = Offset(hip - swing * .6, 68 - lift);
-      stroke(Offset(hip + swing, 57), paw, fur, 6);
-      stroke(paw, paw + const Offset(8, 0), fur, 5);
+      final root = Offset(hip, 43);
+      final paw = Offset(hip, 68) + DogGait.pawOffset(phase, i);
+      final delta = paw - root;
+      final length = delta.distance;
+      final bend = math.sqrt(math.max(0.0, 16 * 16 - length * length / 4));
+      final normal = Offset(delta.dy, -delta.dx) / length;
+      final knee = (root + paw) / 2 + normal * (i < 2 ? -bend : bend);
+      final legColor = i.isEven ? Color.lerp(fur, shine, 0.18)! : fur;
+      stroke(root, knee, legColor, wet ? 7 : 9);
+      stroke(knee, paw, legColor, 6);
+      stroke(paw, paw + const Offset(8, 0), legColor, 5);
     }
     stroke(const Offset(20, 34), Offset(8, 18 + math.sin(stride) * 4), fur, 9);
     final body = Rect.fromLTWH(14, wet ? 25 : 21, 60, wet ? 27 : 33);

@@ -90,10 +90,11 @@ A animação respeita a configuração do sistema para reduzir animações.
 Após adicionar o asset, execute `flutter pub get` e reinicie o app completamente;
 apenas hot reload pode não incluir o arquivo novo no bundle.
 
-O cachorro Terra Nova usa oito sprites transparentes em
-assets/animations/newfoundland-running.png, reproduzidos a 16 fps ao lado
-do ciclista. Os dois assets são carregados separadamente e compartilham
-o relógio de animação da cena; reduzir animações pausa ambos.
+O cachorro Terra Nova usa o atlas local de 16 poses em
+`assets/animations/newfoundland-trot-v2.png`, registrado pela coleira.
+A passada completa dura aproximadamente 1,33 segundo (12 poses por segundo),
+com seis ciclos no relógio de oito segundos da cena. O cenário e o ciclista
+mantêm seus ritmos. Reduzir animações pausa todos os movimentos.
 
 ## Paisagem urbana
 
@@ -197,6 +198,15 @@ o tema da última previsão permanece junto com os dados anteriores.
 O cenário preserva a proporção 400:240 em qualquer largura e usa fundos
 ilustrados urbanos locais. As rodas e patas ficam dentro da faixa da rua,
 em um plano horizontal com sombras de contato. O cachorro usa 16 poses
-a 24 fps, registradas pela coleira para remover os saltos entre linhas
+a 12 fps, registradas pela coleira para remover os saltos entre linhas
 do atlas. A oscilação artificial foi removida. A altura das patas entre
 as 16 poses varia menos de 3 pixels no espaço lógico de 400x240.
+
+## Ritmo da corrida do cachorro
+
+`lib/scene/dog_gait.dart` centraliza o ritmo do atlas e do cachorro vetorial.
+O atlas mantém a ordem das 16 poses e a ancoragem pela coleira, sem misturar
+imagens de patas nem deslocar o personagem. Na chuva e na neve, as patas
+usam apoio no chão e um arco suave no avanço, com pares diagonais alternados
+e articulações de comprimento constante. O tronco mantém a altura definida
+na revisão do cenário. O ciclo fecha junto com o relógio da cena.

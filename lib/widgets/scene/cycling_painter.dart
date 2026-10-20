@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../../scene/scene_weather.dart';
+import '../../scene/dog_gait.dart';
 import 'weather_characters.dart';
 
 class CyclingPainter extends CustomPainter {
@@ -246,8 +247,8 @@ class CyclingPainter extends CustomPainter {
         snow: snow,
       );
     } else if (dog != null) {
-      // 16 poses à 24 fps, com o tronco registrado pela coleira.
-      final frame = (t * 192).floor() % 16;
+      // 16 poses em 1,33 s, mantendo o registro original pela coleira.
+      final frame = DogGait.frameAt(t);
       final cellWidth = dog.width / 4;
       final cellHeight = dog.height / 4;
       final source = Rect.fromLTWH(

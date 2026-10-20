@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../scene/scene_weather.dart';
+import '../../scene/dog_gait.dart';
 import 'cycling_painter.dart';
 import 'sprite_registration.dart';
 
@@ -52,7 +53,7 @@ class _CyclingSceneState extends State<CyclingScene>
     _loadSprite('assets/scenery/urban-streets-v2.png', backdrop: true);
     _motion = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 8),
+      duration: DogGait.sceneDuration,
     );
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       setState(() {

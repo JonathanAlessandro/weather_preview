@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:weather_preview/widgets/scene/cycling_painter.dart';
+import 'package:weather_preview/scene/dog_gait.dart';
 import 'package:weather_preview/widgets/scene/cycling_scene.dart';
 import 'package:weather_preview/widgets/scene/sprite_registration.dart';
 
@@ -101,7 +102,7 @@ void main() {
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
       CyclingPainter(
-        motion: AlwaysStoppedAnimation(entry.key / 192),
+        motion: AlwaysStoppedAnimation(entry.key / (DogGait.cyclesPerScene * DogGait.frameCount)),
         hour: 12,
         temperature: 21,
         code: 0,
