@@ -5,6 +5,7 @@ import 'screens/weather_page.dart';
 import 'services/location_search_service.dart';
 import 'services/location_service.dart';
 import 'services/weather_service.dart';
+import 'theme/app_theme.dart';
 
 /// Único ponto de entrada: cria e conecta as partes do aplicativo monolítico.
 void main() => runApp(const MyApp());
@@ -43,12 +44,15 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'WeatherApp',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) => MaterialApp(
+        title: 'WeatherApp',
+        theme: AppTheme.forWeather(_controller.weather),
+        themeAnimationDuration: WidgetsBinding.instance.platformDispatcher
+            .accessibilityFeatures.disableAnimations ? Duration.zero : const Duration(milliseconds: 350),
+        home: WeatherPage(controller: _controller, searchService: _searchService),
       ),
-      home: WeatherPage(controller: _controller, searchService: _searchService),
     );
   }
 }

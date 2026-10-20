@@ -9,10 +9,10 @@ class TituloSecao extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       titulo,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 20,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF1565C0),
+        color: Theme.of(context).colorScheme.onSurface,
       ),
     );
   }

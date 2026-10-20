@@ -109,6 +109,7 @@ class _CyclingSceneState extends State<CyclingScene>
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final time = widget.time ?? _time.add(Duration(seconds: widget.utcOffsetSeconds));
     final hour = time.hour + time.minute / 60;
     final period = hour < 5 || hour >= 19
@@ -191,10 +192,15 @@ class _CyclingSceneState extends State<CyclingScene>
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
+          runSpacing: 4,
           children: ['Automático', 'Centro', 'Bairro residencial', 'Avenida arborizada'].map((name) {
             return ChoiceChip(
               label: Text(name),
               selected: _environment == name,
+              selectedColor: colors.primary,
+              checkmarkColor: colors.onPrimary,
+              labelStyle: TextStyle(color: _environment == name ? colors.onPrimary : colors.onSurface,
+                  fontWeight: FontWeight.w600),
               onSelected: (_) => setState(() => _environment = name),
             );
           }).toList(),

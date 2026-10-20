@@ -171,3 +171,23 @@ Os modelos não dependem dos serviços. Os adaptadores Android permanecem em
 `android/app/src/main/kotlin/...` e os assets continuam no mesmo aplicativo.
 Os testes usam simuladores em `test/support/`, incluindo testes do controlador
 sem abrir uma tela ou acessar a rede.
+
+## Visual e navegação
+
+O tema do aplicativo fica em `lib/theme/app_theme.dart`, com botões de cores
+vivas, textos brancos e alvos de toque de pelo menos 48 pontos. Cidade e ações ficam no início da tela;
+a animação aparece em seguida, antes do cartão de temperatura e condição.
+Umidade, vento e chuva ficam em cartões que se reorganizam conforme a largura
+e o tamanho de texto do sistema. Há atualização também no topo da tela,
+além do botão inferior e do gesto de puxar para atualizar.
+O seletor do cenário destaca a opção ativa com a cor principal do tema. Os fluxos de busca,
+permissão de localização e consulta à previsão permanecem os mesmos.
+
+O layout inteiro acompanha a previsão consultada: tons quentes no céu limpo,
+azuis na chuva, azul-gelo na neve, violeta nas trovoadas e tons suaves para
+nuvens e nevoeiro. Frio seco também usa uma paleta mais fria, sem provocar
+neve. Fundo, barra superior, cartões, campos, ícones, botões e seletor usam
+o mesmo tema. A mudança acontece após receber a previsão e possui uma
+transição curta, desativada quando o sistema solicita reduzir animações.
+As ações mantêm suas posições em todos os climas; se uma consulta falhar,
+o tema da última previsão permanece junto com os dados anteriores.

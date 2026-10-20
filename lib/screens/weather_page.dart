@@ -27,20 +27,32 @@ class WeatherPage extends StatelessWidget {
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) {
+        final colors = Theme.of(context).colorScheme;
         final weather = controller.weather;
         final loading = controller.loading;
         final error = controller.error;
+        final screenWidth = MediaQuery.sizeOf(context).width;
+        final horizontalPadding = screenWidth > 752 ? (screenWidth - 720) / 2 : 16.0;
         return Scaffold(
           appBar: AppBar(
-            title: const Text('WeatherApp'),
-            backgroundColor: const Color(0xFF1565C0),
-            foregroundColor: Colors.white,
+            title: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.wb_sunny_rounded, color: colors.tertiary),
+              SizedBox(width: 10),
+              Text('WeatherApp'),
+            ]),
+            actions: [
+              IconButton(tooltip: 'Atualizar previsão',
+                  onPressed: loading ? null : controller.refresh,
+                  icon: Icon(Icons.refresh_rounded, color: colors.primary)),
+              const SizedBox(width: 8),
+            ],
           ),
           body: RefreshIndicator(
             onRefresh: controller.refresh,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(horizontalPadding, 16, horizontalPadding,
+                  20 + MediaQuery.paddingOf(context).bottom),
               children: [
                 LocationHeader(location: controller.place, loading: loading,
                     message: controller.locationMessage,
@@ -60,12 +72,13 @@ class WeatherPage extends StatelessWidget {
                 if (weather != null)
                   WeatherReport(weather: weather, location: controller.place),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: loading ? null : controller.refresh,
-                    child: Text(loading ? 'Atualizando…' : 'Atualizar')),
+                ElevatedButton.icon(onPressed: loading ? null : controller.refresh,
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: Text(loading ? 'Atualizando…' : 'Atualizar')),
                 const SizedBox(height: 12),
                 const Text('Fonte: Open-Meteo · Dados meteorológicos por modelos '
                     'de previsão · open-meteo.com (CC BY 4.0)',
-                    style: TextStyle(fontSize: 12)),
+                    style: TextStyle(fontSize: 12, color: Color(0xFF52627A), height: 1.4)),
               ],
             ),
           ),
