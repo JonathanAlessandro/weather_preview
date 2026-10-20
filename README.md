@@ -59,3 +59,12 @@ O cachorro Terra Nova usa oito sprites transparentes em
 assets/animations/newfoundland-running.png, reproduzidos a 16 fps ao lado
 do ciclista. Os dois assets são carregados separadamente e compartilham
 o relógio de animação da cena; reduzir animações pausa ambos.
+
+## Ambientes ilustrados
+
+Cidade, praia e floresta usam o atlas local assets/scenery/environments.png.
+O seletor abaixo da animação permite trocar o ambiente manualmente. No modo
+automático: praia a partir de 28°C, floresta abaixo de 15°C e cidade entre
+esses limites. São temas visuais; a previsão continua sendo de Santo André.
+Os fundos têm movimento lateral e recebem tons noturnos, frios e de entardecer.
+O céu e os efeitos meteorológicos continuam dinâmicos em todos os ambientes.

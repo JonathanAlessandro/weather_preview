@@ -26,8 +26,11 @@ class _CyclingSceneState extends State<CyclingScene>
   Timer? _clock;
   ui.Image? _sprite;
   ui.Image? _dogSprite;
+  ui.Image? _scenery;
+  String _environment = 'Automático';
   bool _spriteError = false;
   bool _dogSpriteError = false;
+  bool _sceneryError = false;
   DateTime _time = DateTime.now().toUtc().subtract(const Duration(hours: 3));
 
   @override
@@ -35,6 +38,7 @@ class _CyclingSceneState extends State<CyclingScene>
     super.initState();
     _loadSprite('assets/animations/cyclist-pedaling.png');
     _loadSprite('assets/animations/newfoundland-running.png', dog: true);
+    _loadSprite('assets/scenery/environments.png', scenery: true);
     _motion = AnimationController(vsync: this, duration: const Duration(seconds: 8));
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       setState(() {
@@ -43,7 +47,7 @@ class _CyclingSceneState extends State<CyclingScene>
     });
   }
 
-  Future<void> _loadSprite(String asset, {bool dog = false}) async {
+  Future<void> _loadSprite(String asset, {bool dog = false, bool scenery = false}) async {
     try {
       final bytes = await rootBundle.load(asset);
       final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List(
@@ -56,7 +60,9 @@ class _CyclingSceneState extends State<CyclingScene>
           return;
         }
         setState(() {
-          if (dog) {
+          if (scenery) {
+            _scenery = frame.image;
+          } else if (dog) {
             _dogSprite = frame.image;
           } else {
             _sprite = frame.image;
@@ -68,7 +74,9 @@ class _CyclingSceneState extends State<CyclingScene>
     } catch (_) {
       if (mounted) {
         setState(() {
-          if (dog) {
+          if (scenery) {
+            _sceneryError = true;
+          } else if (dog) {
             _dogSpriteError = true;
           } else {
             _spriteError = true;
@@ -93,6 +101,7 @@ class _CyclingSceneState extends State<CyclingScene>
     _motion.dispose();
     _sprite?.dispose();
     _dogSprite?.dispose();
+    _scenery?.dispose();
     super.dispose();
   }
 
@@ -111,8 +120,11 @@ class _CyclingSceneState extends State<CyclingScene>
         : widget.temperature >= 28
             ? 'Calor'
             : 'Clima ameno';
-    return Semantics(
-      label: 'Rapaz pedalando com um cachorro Terra Nova correndo ao lado em Santo André. $period. $climate. '
+    final environment = _environment == 'Automático'
+        ? (widget.temperature >= 28 ? 'Praia' : widget.temperature < 15 ? 'Floresta' : 'Cidade')
+        : _environment;
+    final scene = Semantics(
+      label: 'Rapaz pedalando com um cachorro Terra Nova correndo ao lado em Santo André. $environment. $period. $climate. '
           '${widget.temperature.round()} graus Celsius.',
       image: true,
       child: ExcludeSemantics(
@@ -129,6 +141,8 @@ class _CyclingSceneState extends State<CyclingScene>
                       motion: _motion,
                       sprite: _sprite,
                       dogSprite: _dogSprite,
+                      scenery: _scenery,
+                      environment: environment,
                       hour: hour,
                       temperature: widget.temperature,
                       code: widget.weatherCode,
@@ -151,7 +165,7 @@ class _CyclingSceneState extends State<CyclingScene>
                     ),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      child: Text('$period · $climate',
+                      child: Text('$environment · $period · $climate',
                           style: const TextStyle(color: Colors.white, fontSize: 12)),
                     ),
                   ),
@@ -162,16 +176,38 @@ class _CyclingSceneState extends State<CyclingScene>
         ),
       ),
     );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        scene,
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          children: ['Automático', 'Cidade', 'Praia', 'Floresta'].map((name) {
+            return ChoiceChip(
+              label: Text(name),
+              selected: _environment == name,
+              onSelected: (_) => setState(() => _environment = name),
+            );
+          }).toList(),
+        ),
+        if (_sceneryError)
+          const Text('Não foi possível carregar o fundo ilustrado.',
+            style: TextStyle(fontSize: 12)),
+      ],
+    );
   }
 }
 
 class _CyclingPainter extends CustomPainter {
   _CyclingPainter({required this.motion, required this.hour,
-    required this.temperature, required this.code, required this.sprite, required this.dogSprite}) : super(repaint: motion);
+    required this.temperature, required this.code, required this.sprite, required this.dogSprite, required this.scenery, required this.environment}) : super(repaint: motion);
 
   final Animation<double> motion;
   final ui.Image? sprite;
   final ui.Image? dogSprite;
+  final ui.Image? scenery;
+  final String environment;
   final double hour;
   final double temperature;
   final int code;
@@ -224,6 +260,27 @@ class _CyclingPainter extends CustomPainter {
           const Color(0xFFFFDE89));
     }
 
+    final atlas = scenery;
+    if (atlas != null) {
+      final row = environment == 'Cidade' ? 0 : environment == 'Praia' ? 1 : 2;
+      final stripHeight = atlas.height / 3;
+      final source = Rect.fromLTWH(0, row * stripHeight,
+        atlas.width.toDouble(), stripHeight);
+      final paint = Paint()..filterQuality = FilterQuality.medium;
+      if (night) {
+        paint.colorFilter = const ColorFilter.mode(Color(0xFF53678A), BlendMode.modulate);
+      } else if (twilight) {
+        paint.colorFilter = const ColorFilter.mode(Color(0xFFFFC6A4), BlendMode.modulate);
+      } else if (cold) {
+        paint.colorFilter = const ColorFilter.mode(Color(0xFFC6E3F3), BlendMode.modulate);
+      }
+      // Duas cópias percorrem a mesma largura inteira para fechar o loop.
+      final offset = t * 400;
+      for (var tile = 0; tile < 2; tile++) {
+        canvas.drawImageRect(atlas, source,
+          Rect.fromLTWH(tile * 400 - offset, 66, 400, 134), paint);
+      }
+    } else {
     // Colinas e árvores em camadas para criar profundidade.
     for (var layer = 0; layer < 2; layer++) {
       final path = Path()..moveTo(0, 190);
@@ -243,6 +300,7 @@ class _CyclingPainter extends CustomPainter {
       line(Offset(x, 184), Offset(x, 139), const Color(0xFF586B62), 5);
       circle(Offset(x, 133), 18, night ? const Color(0xFF244B4B)
           : cold ? const Color(0xFF83A9A5) : const Color(0xFF3B876A));
+    }
     }
     if (cloudy || cold) {
       for (var i = 0; i < (rain ? 5 : 3); i++) {
@@ -313,5 +371,6 @@ class _CyclingPainter extends CustomPainter {
   bool shouldRepaint(covariant _CyclingPainter oldDelegate) =>
       oldDelegate.hour != hour || oldDelegate.temperature != temperature ||
       oldDelegate.code != code || oldDelegate.motion != motion ||
-      oldDelegate.sprite != sprite || oldDelegate.dogSprite != dogSprite;
+      oldDelegate.sprite != sprite || oldDelegate.dogSprite != dogSprite ||
+      oldDelegate.scenery != scenery || oldDelegate.environment != environment;
 }
