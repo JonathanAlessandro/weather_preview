@@ -60,11 +60,22 @@ assets/animations/newfoundland-running.png, reproduzidos a 16 fps ao lado
 do ciclista. Os dois assets são carregados separadamente e compartilham
 o relógio de animação da cena; reduzir animações pausa ambos.
 
-## Ambientes ilustrados
+## Paisagem urbana de Santo André
 
-Cidade, praia e floresta usam o atlas local assets/scenery/environments.png.
-O seletor abaixo da animação permite trocar o ambiente manualmente. No modo
-automático: praia a partir de 28°C, floresta abaixo de 15°C e cidade entre
-esses limites. São temas visuais; a previsão continua sendo de Santo André.
-Os fundos têm movimento lateral e recebem tons noturnos, frios e de entardecer.
-O céu e os efeitos meteorológicos continuam dinâmicos em todos os ambientes.
+Todos os cenários são urbanos, desenhados em camadas por CustomPainter:
+Centro (prédios e comércio), Bairro residencial (casas e árvores) e Avenida
+arborizada (edifícios, lojas e vegetação). O seletor permite escolher uma
+variação; no Automático, o bairro aparece antes das 7h e após as 17h,
+o centro das 7h às 12h e a avenida das 12h às 17h.
+A temperatura altera o tom do céu, sem trocar a cidade por praia ou floresta.
+
+O relógio de Brasília é atualizado a cada minuto, independentemente de uma
+nova consulta à previsão. Amanhecer (5h–7h), dia (7h–17h), entardecer
+(17h–19h) e noite (19h–5h) mudam a iluminação: céu e fachadas têm cores
+interpoladas, janelas e postes se iluminam à noite. As faixas de horário
+são ilustrativas; não calculam o nascer e o pôr do sol astronômicos.
+Chuva, neve e nevoeiro continuam seguindo o código meteorológico da API.
+
+Os fundos usam desenho vetorial local, dispensando o atlas anterior de
+ambientes. Ciclista e cachorro mantêm seus sprites e a opção de reduzir
+animações do sistema pausa o movimento, preservando a atualização do horário.

@@ -11,10 +11,14 @@ class CyclingScene extends StatefulWidget {
     super.key,
     required this.temperature,
     required this.weatherCode,
+    this.time,
   });
 
   final double temperature;
   final int weatherCode;
+
+  /// Horário de Brasília fixo para prévias; por padrão acompanha o relógio.
+  final DateTime? time;
 
   @override
   State<CyclingScene> createState() => _CyclingSceneState();
@@ -26,11 +30,9 @@ class _CyclingSceneState extends State<CyclingScene>
   Timer? _clock;
   ui.Image? _sprite;
   ui.Image? _dogSprite;
-  ui.Image? _scenery;
   String _environment = 'Automático';
   bool _spriteError = false;
   bool _dogSpriteError = false;
-  bool _sceneryError = false;
   DateTime _time = DateTime.now().toUtc().subtract(const Duration(hours: 3));
 
   @override
@@ -38,7 +40,6 @@ class _CyclingSceneState extends State<CyclingScene>
     super.initState();
     _loadSprite('assets/animations/cyclist-pedaling.png');
     _loadSprite('assets/animations/newfoundland-running.png', dog: true);
-    _loadSprite('assets/scenery/environments.png', scenery: true);
     _motion = AnimationController(vsync: this, duration: const Duration(seconds: 8));
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       setState(() {
@@ -47,7 +48,7 @@ class _CyclingSceneState extends State<CyclingScene>
     });
   }
 
-  Future<void> _loadSprite(String asset, {bool dog = false, bool scenery = false}) async {
+  Future<void> _loadSprite(String asset, {bool dog = false}) async {
     try {
       final bytes = await rootBundle.load(asset);
       final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List(
@@ -60,9 +61,7 @@ class _CyclingSceneState extends State<CyclingScene>
           return;
         }
         setState(() {
-          if (scenery) {
-            _scenery = frame.image;
-          } else if (dog) {
+          if (dog) {
             _dogSprite = frame.image;
           } else {
             _sprite = frame.image;
@@ -74,9 +73,7 @@ class _CyclingSceneState extends State<CyclingScene>
     } catch (_) {
       if (mounted) {
         setState(() {
-          if (scenery) {
-            _sceneryError = true;
-          } else if (dog) {
+          if (dog) {
             _dogSpriteError = true;
           } else {
             _spriteError = true;
@@ -101,13 +98,13 @@ class _CyclingSceneState extends State<CyclingScene>
     _motion.dispose();
     _sprite?.dispose();
     _dogSprite?.dispose();
-    _scenery?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final hour = _time.hour + _time.minute / 60;
+    final time = widget.time ?? _time;
+    final hour = time.hour + time.minute / 60;
     final period = hour < 5 || hour >= 19
         ? 'Noite'
         : hour < 7
@@ -121,7 +118,11 @@ class _CyclingSceneState extends State<CyclingScene>
             ? 'Calor'
             : 'Clima ameno';
     final environment = _environment == 'Automático'
-        ? (widget.temperature >= 28 ? 'Praia' : widget.temperature < 15 ? 'Floresta' : 'Cidade')
+        ? (hour >= 7 && hour < 12
+            ? 'Centro'
+            : hour >= 12 && hour < 17
+                ? 'Avenida arborizada'
+                : 'Bairro residencial')
         : _environment;
     final scene = Semantics(
       label: 'Rapaz pedalando com um cachorro Terra Nova correndo ao lado em Santo André. $environment. $period. $climate. '
@@ -141,7 +142,6 @@ class _CyclingSceneState extends State<CyclingScene>
                       motion: _motion,
                       sprite: _sprite,
                       dogSprite: _dogSprite,
-                      scenery: _scenery,
                       environment: environment,
                       hour: hour,
                       temperature: widget.temperature,
@@ -158,6 +158,7 @@ class _CyclingSceneState extends State<CyclingScene>
                 Positioned(
                   top: 16,
                   left: 16,
+                  right: 16,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: const Color(0xB3203044),
@@ -183,7 +184,7 @@ class _CyclingSceneState extends State<CyclingScene>
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
-          children: ['Automático', 'Cidade', 'Praia', 'Floresta'].map((name) {
+          children: ['Automático', 'Centro', 'Bairro residencial', 'Avenida arborizada'].map((name) {
             return ChoiceChip(
               label: Text(name),
               selected: _environment == name,
@@ -191,9 +192,6 @@ class _CyclingSceneState extends State<CyclingScene>
             );
           }).toList(),
         ),
-        if (_sceneryError)
-          const Text('Não foi possível carregar o fundo ilustrado.',
-            style: TextStyle(fontSize: 12)),
       ],
     );
   }
@@ -201,12 +199,11 @@ class _CyclingSceneState extends State<CyclingScene>
 
 class _CyclingPainter extends CustomPainter {
   _CyclingPainter({required this.motion, required this.hour,
-    required this.temperature, required this.code, required this.sprite, required this.dogSprite, required this.scenery, required this.environment}) : super(repaint: motion);
+    required this.temperature, required this.code, required this.sprite, required this.dogSprite, required this.environment}) : super(repaint: motion);
 
   final Animation<double> motion;
   final ui.Image? sprite;
   final ui.Image? dogSprite;
-  final ui.Image? scenery;
   final String environment;
   final double hour;
   final double temperature;
@@ -226,15 +223,22 @@ class _CyclingPainter extends CustomPainter {
         (code >= 80 && code <= 82) || code >= 95;
     final snow = (code >= 71 && code <= 77) || code == 85 || code == 86;
     final cloudy = code >= 2;
-    final sky = night
-        ? [const Color(0xFF101B3E), const Color(0xFF45537D)]
-        : twilight
-            ? [const Color(0xFF8465A6), const Color(0xFFFFC193)]
-            : cold
-                ? [const Color(0xFF83AFC9), const Color(0xFFDCE9F0)]
-                : hot
-                    ? [const Color(0xFF319EDE), const Color(0xFFFFE9A6)]
-                    : [const Color(0xFF66BCE5), const Color(0xFFD4F2EA)];
+    // Interpolação por minuto evita saltos de cor entre os períodos.
+    final daylight = hour < 5 || hour >= 19
+        ? 0.0
+        : hour < 7
+            ? (hour - 5) / 2
+            : hour > 17
+                ? (19 - hour) / 2
+                : 1.0;
+    final warmth = twilight ? math.sin(daylight * math.pi) : 0.0;
+    Color lit(Color day, Color dark) => Color.lerp(dark, day, daylight)!;
+    final sky = [
+      Color.lerp(lit(cold ? const Color(0xFF83AFC9) : const Color(0xFF66BCE5),
+          const Color(0xFF101B3E)), const Color(0xFFAD789E), warmth)!,
+      Color.lerp(lit(hot ? const Color(0xFFFFE9A6) : const Color(0xFFD4F2EA),
+          const Color(0xFF45537D)), const Color(0xFFFFC193), warmth)!,
+    ];
     canvas.drawRect(bounds, Paint()..shader = LinearGradient(
       begin: Alignment.topCenter, end: Alignment.bottomCenter,
       colors: sky,
@@ -260,48 +264,7 @@ class _CyclingPainter extends CustomPainter {
           const Color(0xFFFFDE89));
     }
 
-    final atlas = scenery;
-    if (atlas != null) {
-      final row = environment == 'Cidade' ? 0 : environment == 'Praia' ? 1 : 2;
-      final stripHeight = atlas.height / 3;
-      final source = Rect.fromLTWH(0, row * stripHeight,
-        atlas.width.toDouble(), stripHeight);
-      final paint = Paint()..filterQuality = FilterQuality.medium;
-      if (night) {
-        paint.colorFilter = const ColorFilter.mode(Color(0xFF53678A), BlendMode.modulate);
-      } else if (twilight) {
-        paint.colorFilter = const ColorFilter.mode(Color(0xFFFFC6A4), BlendMode.modulate);
-      } else if (cold) {
-        paint.colorFilter = const ColorFilter.mode(Color(0xFFC6E3F3), BlendMode.modulate);
-      }
-      // Duas cópias percorrem a mesma largura inteira para fechar o loop.
-      final offset = t * 400;
-      for (var tile = 0; tile < 2; tile++) {
-        canvas.drawImageRect(atlas, source,
-          Rect.fromLTWH(tile * 400 - offset, 66, 400, 134), paint);
-      }
-    } else {
-    // Colinas e árvores em camadas para criar profundidade.
-    for (var layer = 0; layer < 2; layer++) {
-      final path = Path()..moveTo(0, 190);
-      for (var x = 0; x <= 400; x += 4) {
-        path.lineTo(x.toDouble(), 153 + layer * 20 +
-            math.sin(x / 70 + layer * 2) * 15);
-      }
-      path..lineTo(400, 240)..lineTo(0, 240)..close();
-      canvas.drawPath(path, Paint()..color = night
-          ? (layer == 0 ? const Color(0xFF354C66) : const Color(0xFF24464A))
-          : cold
-              ? (layer == 0 ? const Color(0xFFA4BCC2) : const Color(0xFF749B9C))
-              : (layer == 0 ? const Color(0xFF85BA9C) : const Color(0xFF4D977D)));
-    }
-    for (var i = 0; i < 6; i++) {
-      final x = (i * 85 + 400 - t * 170) % 510 - 55;
-      line(Offset(x, 184), Offset(x, 139), const Color(0xFF586B62), 5);
-      circle(Offset(x, 133), 18, night ? const Color(0xFF244B4B)
-          : cold ? const Color(0xFF83A9A5) : const Color(0xFF3B876A));
-    }
-    }
+    _paintCity(canvas, t, daylight);
     if (cloudy || cold) {
       for (var i = 0; i < (rain ? 5 : 3); i++) {
         final x = (i * 143 + 440 - t * 48) % 510 - 55;
@@ -313,9 +276,9 @@ class _CyclingPainter extends CustomPainter {
       }
     }
     canvas.drawRect(const Rect.fromLTWH(0, 199, 400, 41),
-        Paint()..color = night ? const Color(0xFF253043) : const Color(0xFF697B86));
+        Paint()..color = lit(const Color(0xFF697B86), const Color(0xFF253043)));
     line(const Offset(0, 200), const Offset(400, 200), const Color(0xFFC4D6CF), 3);
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 9; i++) {
       final x = (i * 70 - t * 560) % 560 - 70;
       line(Offset(x, 223), Offset(x + 28, 223), const Color(0xBBDDE8D8), 3);
     }
@@ -367,10 +330,95 @@ class _CyclingPainter extends CustomPainter {
     canvas.restore();
   }
 
+  void _paintCity(Canvas canvas, double t, double daylight) {
+    Color lit(Color day, Color dark) => Color.lerp(dark, day, daylight)!;
+    void rect(double x, double y, double w, double h, Color color) {
+      canvas.drawRect(Rect.fromLTWH(x, y, w, h), Paint()..color = color);
+    }
+    void line(double x, double y, double x2, double y2, Color color,
+        [double width = 2]) {
+      canvas.drawLine(Offset(x, y), Offset(x2, y2),
+          Paint()..color = color..strokeWidth = width);
+    }
+    final window = lit(const Color(0xFFABCBD4), const Color(0xFFFFD98A));
+    final shadow = lit(const Color(0xFF567C91), const Color(0xFF28354E));
+
+    // Cada camada percorre um número inteiro de módulos por ciclo:
+    // a paisagem fecha o loop sem emendas e mantém profundidade.
+    for (var i = 0; i < 13; i++) {
+      final x = i * 40.0 - t * 80 - 40;
+      final height = 42.0 + (i % 2) * 22;
+      rect(x, 181 - height, 32, height,
+          lit(const Color(0xFF92ADB9), const Color(0xFF34445E)));
+      rect(x + 4, 181 - height + 6, 24, 3, shadow);
+    }
+
+    final residential = environment == 'Bairro residencial';
+    final avenue = environment == 'Avenida arborizada';
+    for (var i = 0; i < 9; i++) {
+      final x = i * 80.0 - t * 160 - 80;
+      final height = residential ? 38.0 : avenue ? 66.0 : 88.0 + (i % 2) * 26;
+      final top = 188 - height;
+      final facade = lit(
+          residential ? const Color(0xFFD9BBA1)
+              : avenue ? const Color(0xFFB8C7BD) : const Color(0xFFB5C6D2),
+          const Color(0xFF45526B));
+      rect(x, top, 62, height, facade);
+      rect(x + 49, top, 13, height, shadow);
+      if (residential) {
+        final roof = Path()..moveTo(x - 4, top)
+          ..lineTo(x + 31, top - 18)..lineTo(x + 66, top)..close();
+        canvas.drawPath(roof, Paint()..color = lit(
+            const Color(0xFFAF715C), const Color(0xFF493F53)));
+        rect(x + 25, 165, 12, 23, shadow);
+      } else {
+        rect(x - 2, top, 66, 4, shadow);
+        // Lojas no térreo e marquise voltada à calçada.
+        rect(x + 6, 169, 36, 19, shadow);
+        rect(x + 7, 171, 14, 14, window);
+        rect(x + 25, 171, 14, 14, window);
+        rect(x - 2, 162, 64, 6, lit(
+            const Color(0xFFBD7967), const Color(0xFF6C4C60)));
+      }
+      for (var row = 0; row < (residential ? 1 : avenue ? 3 : 5); row++) {
+        for (var col = 0; col < 3; col++) {
+          rect(x + 7 + col * 13, top + 10 + row * 12, 7, 7,
+              (row + col + i % 2) % 3 == 0 ? shadow : window);
+        }
+      }
+    }
+    rect(0, 188, 400, 11, lit(
+        const Color(0xFFC8C5B9), const Color(0xFF4C5260)));
+    for (var i = 0; i < 8; i++) {
+      final x = i * 100.0 - t * 200 - 100;
+      if (avenue || residential) {
+        line(x + 34, 191, x + 34, 151, shadow, 4);
+        final leaf = lit(const Color(0xFF4B8E72), const Color(0xFF264B4C));
+        for (var crown = 0; crown < 3; crown++) {
+          canvas.drawCircle(Offset(x + 22 + crown * 12, 149 - (crown % 2) * 9),
+              avenue ? 18 : 12, Paint()..color = leaf);
+        }
+      }
+      // Postes e luzes acendem gradualmente ao anoitecer.
+      line(x + 77, 193, x + 77, 128, shadow, 3);
+      line(x + 77, 128, x + 92, 128, shadow, 3);
+      if (daylight < 1) {
+        final beam = Path()..moveTo(x + 87, 132)
+          ..lineTo(x + 70, 197)..lineTo(x + 114, 197)
+          ..lineTo(x + 97, 132)..close();
+        canvas.drawPath(beam, Paint()..color =
+            Color.fromRGBO(255, 218, 143, (1 - daylight) * 0.16));
+        canvas.drawCircle(Offset(x + 92, 131), 10,
+            Paint()..color = Color.fromRGBO(255, 218, 143, (1 - daylight) * 0.12));
+      }
+      rect(x + 86, 128, 12, 4, window);
+    }
+  }
+
   @override
   bool shouldRepaint(covariant _CyclingPainter oldDelegate) =>
       oldDelegate.hour != hour || oldDelegate.temperature != temperature ||
       oldDelegate.code != code || oldDelegate.motion != motion ||
       oldDelegate.sprite != sprite || oldDelegate.dogSprite != dogSprite ||
-      oldDelegate.scenery != scenery || oldDelegate.environment != environment;
+      oldDelegate.environment != environment;
 }
