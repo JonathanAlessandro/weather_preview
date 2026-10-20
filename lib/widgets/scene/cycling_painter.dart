@@ -7,12 +7,23 @@ import '../../scene/scene_weather.dart';
 import 'weather_characters.dart';
 
 class CyclingPainter extends CustomPainter {
-  CyclingPainter({required this.motion, required this.hour,
-    required this.temperature, required this.code, required this.sprite, required this.dogSprite, required this.environment}) : super(repaint: motion);
+  CyclingPainter({
+    required this.motion,
+    required this.hour,
+    required this.temperature,
+    required this.code,
+    required this.sprite,
+    required this.dogSprite,
+    required this.environment,
+    this.backdrop,
+    this.dogAnchors = const [],
+  }) : super(repaint: motion);
 
   final Animation<double> motion;
   final ui.Image? sprite;
   final ui.Image? dogSprite;
+  final ui.Image? backdrop;
+  final List<Offset> dogAnchors;
   final String environment;
   final double hour;
   final double temperature;
@@ -36,44 +47,113 @@ class CyclingPainter extends CustomPainter {
     final daylight = hour < 5 || hour >= 19
         ? 0.0
         : hour < 7
-            ? (hour - 5) / 2
-            : hour > 17
-                ? (19 - hour) / 2
-                : 1.0;
+        ? (hour - 5) / 2
+        : hour > 17
+        ? (19 - hour) / 2
+        : 1.0;
     final warmth = twilight ? math.sin(daylight * math.pi) : 0.0;
     Color lit(Color day, Color dark) => Color.lerp(dark, day, daylight)!;
     final sky = [
-      Color.lerp(lit(cold ? const Color(0xFF83AFC9) : const Color(0xFF66BCE5),
-          const Color(0xFF101B3E)), const Color(0xFFAD789E), warmth)!,
-      Color.lerp(lit(hot ? const Color(0xFFFFE9A6) : const Color(0xFFD4F2EA),
-          const Color(0xFF45537D)), const Color(0xFFFFC193), warmth)!,
+      Color.lerp(
+        lit(
+          cold ? const Color(0xFF83AFC9) : const Color(0xFF66BCE5),
+          const Color(0xFF101B3E),
+        ),
+        const Color(0xFFAD789E),
+        warmth,
+      )!,
+      Color.lerp(
+        lit(
+          hot ? const Color(0xFFFFE9A6) : const Color(0xFFD4F2EA),
+          const Color(0xFF45537D),
+        ),
+        const Color(0xFFFFC193),
+        warmth,
+      )!,
     ];
-    canvas.drawRect(bounds, Paint()..shader = LinearGradient(
-      begin: Alignment.topCenter, end: Alignment.bottomCenter,
-      colors: sky,
-    ).createShader(bounds));
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: sky,
+        ).createShader(bounds),
+    );
 
     void line(Offset a, Offset b, Color color, double width) {
-      canvas.drawLine(a, b, Paint()..color = color
-        ..strokeWidth = width..strokeCap = StrokeCap.round);
+      canvas.drawLine(
+        a,
+        b,
+        Paint()
+          ..color = color
+          ..strokeWidth = width
+          ..strokeCap = StrokeCap.round,
+      );
     }
+
     void circle(Offset center, double radius, Color color) {
       canvas.drawCircle(center, radius, Paint()..color = color);
     }
 
     if (night) {
       for (var i = 0; i < 24; i++) {
-        circle(Offset((i * 67.0 + 17) % 400, (i * 31.0) % 115 + 12),
-            i.isEven ? 1.4 : 0.8, const Color(0xCCFFFFFF));
+        circle(
+          Offset((i * 67.0 + 17) % 400, (i * 31.0) % 115 + 12),
+          i.isEven ? 1.4 : 0.8,
+          const Color(0xCCFFFFFF),
+        );
       }
       circle(const Offset(330, 48), 20, const Color(0xFFFFF2C9));
       circle(const Offset(339, 41), 19, sky.first);
     } else {
-      circle(Offset(326, twilight ? 115 : 57), hot ? 28 : 22,
-          const Color(0xFFFFDE89));
+      circle(
+        Offset(326, twilight ? 115 : 57),
+        hot ? 28 : 22,
+        const Color(0xFFFFDE89),
+      );
     }
 
-    _paintCity(canvas, t, daylight, snow: snow);
+    canvas.drawRect(
+      const Rect.fromLTWH(0, 188, 400, 52),
+      Paint()..color = lit(const Color(0xFF55555F), const Color(0xFF2D3344)),
+    );
+    final art = backdrop;
+    if (art != null) {
+      final row = environment == 'Centro'
+          ? 0
+          : environment == 'Bairro residencial'
+          ? 1
+          : 2;
+      // O atlas tem três faixas ilustradas com limites registrados.
+      const edges = [0.0, 541.0, 1009.0, 1535.0];
+      final factor = art.height / 1535;
+      final src = Rect.fromLTRB(
+        0,
+        edges[row] * factor,
+        art.width.toDouble(),
+        edges[row + 1] * factor,
+      );
+      final paint = Paint()..filterQuality = FilterQuality.medium;
+      if (daylight < 1) {
+        paint.colorFilter = ColorFilter.mode(
+          Color.lerp(const Color(0xFF64789B), Colors.white, daylight)!,
+          BlendMode.modulate,
+        );
+      }
+      // Movimento lento do fundo; rua e personagens compartilham o plano horizontal.
+      final scroll = t * 400;
+      for (var tile = 0; tile < 2; tile++) {
+        canvas.drawImageRect(
+          art,
+          src,
+          Rect.fromLTWH(tile * 400 - scroll, 0, 400, 240),
+          paint,
+        );
+      }
+    } else {
+      _paintCity(canvas, t, daylight, snow: snow);
+    }
     if (cloudy || cold) {
       for (var i = 0; i < (rain ? 5 : 3); i++) {
         final x = (i * 143 + 440 - t * 48) % 510 - 55;
@@ -84,62 +164,111 @@ class CyclingPainter extends CustomPainter {
         circle(Offset(x + 40, y), 17, color);
       }
     }
-    canvas.drawRect(const Rect.fromLTWH(0, 199, 400, 41),
-        Paint()..color = lit(const Color(0xFF697B86), const Color(0xFF253043)));
-    line(const Offset(0, 200), const Offset(400, 200), const Color(0xFFC4D6CF), 3);
-    for (var i = 0; i < 9; i++) {
-      final x = (i * 70 - t * 560) % 560 - 70;
-      line(Offset(x, 223), Offset(x + 28, 223), const Color(0xBBDDE8D8), 3);
+    if (art == null) {
+      canvas.drawRect(
+        const Rect.fromLTWH(0, 199, 400, 41),
+        Paint()..color = lit(const Color(0xFF697B86), const Color(0xFF253043)),
+      );
+      line(
+        const Offset(0, 200),
+        const Offset(400, 200),
+        const Color(0xFFC4D6CF),
+        3,
+      );
+      for (var i = 0; i < 9; i++) {
+        final x = (i * 70 - t * 560) % 560 - 70;
+        line(Offset(x, 223), Offset(x + 28, 223), const Color(0xBBDDE8D8), 3);
+      }
     }
 
     if (snow) {
-      line(const Offset(0, 201), const Offset(400, 201), const Color(0xFFE6F2FA), 7);
+      line(
+        const Offset(0, 201),
+        const Offset(400, 201),
+        const Color(0xFFE6F2FA),
+        7,
+      );
       for (var i = 0; i < 8; i++) {
         final x = (i * 70 - t * 560) % 560 - 70;
-        canvas.drawOval(Rect.fromLTWH(x, 231, 30, 5),
-            Paint()..color = const Color(0x99D9EAF2));
+        canvas.drawOval(
+          Rect.fromLTWH(x, 231, 30, 5),
+          Paint()..color = const Color(0x99D9EAF2),
+        );
       }
       _paintSnow(canvas, t, foreground: false);
     } else if (rain) {
       for (var i = 0; i < 5; i++) {
         final x = (i * 112 - t * 560) % 560 - 70;
-        canvas.drawOval(Rect.fromLTWH(x, 207.0 + (i % 2) * 21, 42, 4),
-            Paint()..color = const Color(0x668CC6DA));
+        canvas.drawOval(
+          Rect.fromLTWH(x, 207.0 + (i % 2) * 21, 42, 4),
+          Paint()..color = const Color(0x668CC6DA),
+        );
       }
     }
+    final contact = Paint()
+      ..color = const Color(0x380E1824)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    canvas.drawOval(const Rect.fromLTWH(132, 218, 132, 5), contact);
+    canvas.drawOval(const Rect.fromLTWH(291, 218, 85, 5), contact);
     final image = sprite;
     if (weather.outfit != CyclingOutfit.regular) {
-      WeatherCharacters.cyclist(canvas, const Rect.fromLTWH(119, 89, 150, 125),
-          t, weather.outfit, snow: snow);
+      WeatherCharacters.cyclist(
+        canvas,
+        const Rect.fromLTWH(119, 97, 150, 125),
+        t,
+        weather.outfit,
+        snow: snow,
+      );
     } else if (image != null) {
       final frame = (t * 64).floor() % 8;
       final cellWidth = image.width / 4;
       final cellHeight = image.height / 2;
       final source = Rect.fromLTWH(
-        (frame % 4) * cellWidth, (frame ~/ 4) * cellHeight,
-        cellWidth, cellHeight,
+        (frame % 4) * cellWidth,
+        (frame ~/ 4) * cellHeight,
+        cellWidth,
+        cellHeight,
       );
-      final bob = math.sin(t * math.pi * 16) * 0.6;
-      canvas.drawImageRect(image, source,
-        Rect.fromLTWH(120, 4 + bob, 160, 160 * cellHeight / cellWidth),
+      canvas.drawImageRect(
+        image,
+        source,
+        Rect.fromLTWH(120, 24, 160, 160 * cellHeight / cellWidth),
         Paint()..filterQuality = FilterQuality.medium,
       );
     }
     final dog = dogSprite;
     if (rain || snow) {
-      WeatherCharacters.dog(canvas, const Rect.fromLTWH(283, 149, 100, 75), t,
-          wet: rain, snow: snow);
-    } else if (dog != null) {
-      // Dezesseis quadros por segundo: duas passadas completas por segundo.
-      final frame = (t * 128).floor() % 8;
-      final cellWidth = dog.width / 4;
-      final cellHeight = dog.height / 2;
-      final source = Rect.fromLTWH(
-        (frame % 4) * cellWidth, (frame ~/ 4) * cellHeight,
-        cellWidth, cellHeight,
+      WeatherCharacters.dog(
+        canvas,
+        const Rect.fromLTWH(283, 151, 100, 75),
+        t,
+        wet: rain,
+        snow: snow,
       );
-      canvas.drawImageRect(dog, source,
-        Rect.fromLTWH(276, 75, 110, 110 * cellHeight / cellWidth),
+    } else if (dog != null) {
+      // 16 poses à 24 fps, com o tronco registrado pela coleira.
+      final frame = (t * 192).floor() % 16;
+      final cellWidth = dog.width / 4;
+      final cellHeight = dog.height / 4;
+      final source = Rect.fromLTWH(
+        (frame % 4) * cellWidth,
+        (frame ~/ 4) * cellHeight,
+        cellWidth,
+        cellHeight,
+      );
+      final anchor = dogAnchors.length == 16
+          ? dogAnchors[frame]
+          : Offset(cellWidth * .73, cellHeight * .45);
+      final scale = 110 / cellWidth;
+      canvas.drawImageRect(
+        dog,
+        source,
+        Rect.fromLTWH(
+          351 - anchor.dx * scale,
+          174 - anchor.dy * scale,
+          110,
+          cellHeight * scale,
+        ),
         Paint()..filterQuality = FilterQuality.medium,
       );
     }
@@ -160,33 +289,60 @@ class CyclingPainter extends CustomPainter {
 
   void _paintSnow(Canvas canvas, double t, {required bool foreground}) {
     final count = foreground ? 36 : 44;
-    final color = foreground ? const Color(0xEFFFFFFF) : const Color(0x99DCEAF5);
+    final color = foreground
+        ? const Color(0xEFFFFFFF)
+        : const Color(0x99DCEAF5);
     for (var i = 0; i < count; i++) {
-      final x = (i * 73.0 - t * 440 + math.sin(t * math.pi * 8 + i) * 9) % 440 - 20;
+      final x =
+          (i * 73.0 - t * 440 + math.sin(t * math.pi * 8 + i) * 9) % 440 - 20;
       final y = (i * 41.0 + t * (foreground ? 780 : 520)) % 260 - 10;
       final radius = foreground ? 2.0 + (i % 3) * 0.6 : 1.0 + (i % 2) * 0.4;
       canvas.drawCircle(Offset(x, y), radius, Paint()..color = color);
       if (foreground && i % 4 == 0) {
         for (var arm = 0; arm < 3; arm++) {
           final angle = arm * math.pi / 3;
-          final delta = Offset(math.cos(angle), math.sin(angle)) * (radius + 1.5);
-          canvas.drawLine(Offset(x, y) - delta, Offset(x, y) + delta,
-              Paint()..color = color..strokeWidth = 0.8);
+          final delta =
+              Offset(math.cos(angle), math.sin(angle)) * (radius + 1.5);
+          canvas.drawLine(
+            Offset(x, y) - delta,
+            Offset(x, y) + delta,
+            Paint()
+              ..color = color
+              ..strokeWidth = 0.8,
+          );
         }
       }
     }
   }
 
-  void _paintCity(Canvas canvas, double t, double daylight, {required bool snow}) {
+  void _paintCity(
+    Canvas canvas,
+    double t,
+    double daylight, {
+    required bool snow,
+  }) {
     Color lit(Color day, Color dark) => Color.lerp(dark, day, daylight)!;
     void rect(double x, double y, double w, double h, Color color) {
       canvas.drawRect(Rect.fromLTWH(x, y, w, h), Paint()..color = color);
     }
-    void line(double x, double y, double x2, double y2, Color color,
-        [double width = 2]) {
-      canvas.drawLine(Offset(x, y), Offset(x2, y2),
-          Paint()..color = color..strokeWidth = width);
+
+    void line(
+      double x,
+      double y,
+      double x2,
+      double y2,
+      Color color, [
+      double width = 2,
+    ]) {
+      canvas.drawLine(
+        Offset(x, y),
+        Offset(x2, y2),
+        Paint()
+          ..color = color
+          ..strokeWidth = width,
+      );
     }
+
     final window = lit(const Color(0xFFABCBD4), const Color(0xFFFFD98A));
     final shadow = lit(const Color(0xFF567C91), const Color(0xFF28354E));
 
@@ -195,8 +351,13 @@ class CyclingPainter extends CustomPainter {
     for (var i = 0; i < 13; i++) {
       final x = i * 40.0 - t * 80 - 40;
       final height = 42.0 + (i % 2) * 22;
-      rect(x, 181 - height, 32, height,
-          lit(const Color(0xFF92ADB9), const Color(0xFF34445E)));
+      rect(
+        x,
+        181 - height,
+        32,
+        height,
+        lit(const Color(0xFF92ADB9), const Color(0xFF34445E)),
+      );
       rect(x + 4, 181 - height + 6, 24, 3, shadow);
     }
 
@@ -204,19 +365,33 @@ class CyclingPainter extends CustomPainter {
     final avenue = environment == 'Avenida arborizada';
     for (var i = 0; i < 9; i++) {
       final x = i * 80.0 - t * 160 - 80;
-      final height = residential ? 38.0 : avenue ? 66.0 : 88.0 + (i % 2) * 26;
+      final height = residential
+          ? 38.0
+          : avenue
+          ? 66.0
+          : 88.0 + (i % 2) * 26;
       final top = 188 - height;
       final facade = lit(
-          residential ? const Color(0xFFD9BBA1)
-              : avenue ? const Color(0xFFB8C7BD) : const Color(0xFFB5C6D2),
-          const Color(0xFF45526B));
+        residential
+            ? const Color(0xFFD9BBA1)
+            : avenue
+            ? const Color(0xFFB8C7BD)
+            : const Color(0xFFB5C6D2),
+        const Color(0xFF45526B),
+      );
       rect(x, top, 62, height, facade);
       rect(x + 49, top, 13, height, shadow);
       if (residential) {
-        final roof = Path()..moveTo(x - 4, top)
-          ..lineTo(x + 31, top - 18)..lineTo(x + 66, top)..close();
-        canvas.drawPath(roof, Paint()..color = lit(
-            const Color(0xFFAF715C), const Color(0xFF493F53)));
+        final roof = Path()
+          ..moveTo(x - 4, top)
+          ..lineTo(x + 31, top - 18)
+          ..lineTo(x + 66, top)
+          ..close();
+        canvas.drawPath(
+          roof,
+          Paint()
+            ..color = lit(const Color(0xFFAF715C), const Color(0xFF493F53)),
+        );
         rect(x + 25, 165, 12, 23, shadow);
       } else {
         rect(x - 2, top, 66, 4, shadow);
@@ -224,38 +399,76 @@ class CyclingPainter extends CustomPainter {
         rect(x + 6, 169, 36, 19, shadow);
         rect(x + 7, 171, 14, 14, window);
         rect(x + 25, 171, 14, 14, window);
-        rect(x - 2, 162, 64, 6, lit(
-            const Color(0xFFBD7967), const Color(0xFF6C4C60)));
+        rect(
+          x - 2,
+          162,
+          64,
+          6,
+          lit(const Color(0xFFBD7967), const Color(0xFF6C4C60)),
+        );
       }
       if (snow) {
-        final cap = Path()..moveTo(x - 3, top)
+        final cap = Path()
+          ..moveTo(x - 3, top)
           ..lineTo(x + 31, residential ? top - 18 : top)
           ..lineTo(x + 65, top);
-        canvas.drawPath(cap, Paint()..color = const Color(0xFFEAF4FC)
-          ..style = PaintingStyle.stroke..strokeWidth = 4..strokeCap = StrokeCap.round);
+        canvas.drawPath(
+          cap,
+          Paint()
+            ..color = const Color(0xFFEAF4FC)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 4
+            ..strokeCap = StrokeCap.round,
+        );
       }
-      for (var row = 0; row < (residential ? 1 : avenue ? 3 : 5); row++) {
+      for (
+        var row = 0;
+        row <
+            (residential
+                ? 1
+                : avenue
+                ? 3
+                : 5);
+        row++
+      ) {
         for (var col = 0; col < 3; col++) {
-          rect(x + 7 + col * 13, top + 10 + row * 12, 7, 7,
-              (row + col + i % 2) % 3 == 0 ? shadow : window);
+          rect(
+            x + 7 + col * 13,
+            top + 10 + row * 12,
+            7,
+            7,
+            (row + col + i % 2) % 3 == 0 ? shadow : window,
+          );
         }
       }
     }
-    rect(0, 188, 400, 11, lit(
-        const Color(0xFFC8C5B9), const Color(0xFF4C5260)));
+    rect(
+      0,
+      188,
+      400,
+      11,
+      lit(const Color(0xFFC8C5B9), const Color(0xFF4C5260)),
+    );
     for (var i = 0; i < 8; i++) {
       final x = i * 100.0 - t * 200 - 100;
       if (avenue || residential) {
         line(x + 34, 191, x + 34, 151, shadow, 4);
         final leaf = lit(const Color(0xFF4B8E72), const Color(0xFF264B4C));
         for (var crown = 0; crown < 3; crown++) {
-          canvas.drawCircle(Offset(x + 22 + crown * 12, 149.0 - (crown % 2) * 9),
-              avenue ? 18 : 12, Paint()..color = leaf);
+          canvas.drawCircle(
+            Offset(x + 22 + crown * 12, 149.0 - (crown % 2) * 9),
+            avenue ? 18 : 12,
+            Paint()..color = leaf,
+          );
           if (snow) {
-            canvas.drawOval(Rect.fromCenter(
+            canvas.drawOval(
+              Rect.fromCenter(
                 center: Offset(x + 22 + crown * 12, 139.0 - (crown % 2) * 9),
-                width: avenue ? 26 : 17, height: 5),
-                Paint()..color = const Color(0xFFE2EFF8));
+                width: avenue ? 26 : 17,
+                height: 5,
+              ),
+              Paint()..color = const Color(0xFFE2EFF8),
+            );
           }
         }
       }
@@ -263,13 +476,21 @@ class CyclingPainter extends CustomPainter {
       line(x + 77, 193, x + 77, 128, shadow, 3);
       line(x + 77, 128, x + 92, 128, shadow, 3);
       if (daylight < 1) {
-        final beam = Path()..moveTo(x + 87, 132)
-          ..lineTo(x + 70, 197)..lineTo(x + 114, 197)
-          ..lineTo(x + 97, 132)..close();
-        canvas.drawPath(beam, Paint()..color =
-            Color.fromRGBO(255, 218, 143, (1 - daylight) * 0.16));
-        canvas.drawCircle(Offset(x + 92, 131), 10,
-            Paint()..color = Color.fromRGBO(255, 218, 143, (1 - daylight) * 0.12));
+        final beam = Path()
+          ..moveTo(x + 87, 132)
+          ..lineTo(x + 70, 197)
+          ..lineTo(x + 114, 197)
+          ..lineTo(x + 97, 132)
+          ..close();
+        canvas.drawPath(
+          beam,
+          Paint()..color = Color.fromRGBO(255, 218, 143, (1 - daylight) * 0.16),
+        );
+        canvas.drawCircle(
+          Offset(x + 92, 131),
+          10,
+          Paint()..color = Color.fromRGBO(255, 218, 143, (1 - daylight) * 0.12),
+        );
       }
       rect(x + 86, 128, 12, 4, window);
     }
@@ -277,8 +498,13 @@ class CyclingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CyclingPainter oldDelegate) =>
-      oldDelegate.hour != hour || oldDelegate.temperature != temperature ||
-      oldDelegate.code != code || oldDelegate.motion != motion ||
-      oldDelegate.sprite != sprite || oldDelegate.dogSprite != dogSprite ||
-      oldDelegate.environment != environment;
+      oldDelegate.hour != hour ||
+      oldDelegate.temperature != temperature ||
+      oldDelegate.code != code ||
+      oldDelegate.motion != motion ||
+      oldDelegate.sprite != sprite ||
+      oldDelegate.dogSprite != dogSprite ||
+      oldDelegate.environment != environment ||
+      oldDelegate.backdrop != backdrop ||
+      oldDelegate.dogAnchors != dogAnchors;
 }

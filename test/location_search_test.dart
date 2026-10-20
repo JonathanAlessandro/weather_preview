@@ -46,6 +46,7 @@ void main() {
     await tester.tap(find.text('Pesquisar cidade'));
     await tester.pump(const Duration(milliseconds: 300));
     await tester.enterText(find.byType(TextField), 'Campinas');
+    await tester.pump();
     await tester.tap(find.text('Buscar'));
     await tester.pump();
     await tester.tap(find.text(campinas.label));
@@ -99,6 +100,7 @@ void main() {
     await tester.tap(find.text('Buscar'));
     await tester.pump();
     await tester.enterText(find.byType(TextField), 'Campinas');
+    await tester.pump();
     await tester.tap(find.text('Buscar'));
     await tester.pump();
     old.complete([WeatherLocation.santoAndre]);

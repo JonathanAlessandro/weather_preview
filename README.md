@@ -191,3 +191,12 @@ o mesmo tema. A mudança acontece após receber a previsão e possui uma
 transição curta, desativada quando o sistema solicita reduzir animações.
 As ações mantêm suas posições em todos os climas; se uma consulta falhar,
 o tema da última previsão permanece junto com os dados anteriores.
+
+## Revisão visual 1.0.1
+
+O cenário preserva a proporção 400:240 em qualquer largura e usa fundos
+ilustrados urbanos locais. As rodas e patas ficam dentro da faixa da rua,
+em um plano horizontal com sombras de contato. O cachorro usa 16 poses
+a 24 fps, registradas pela coleira para remover os saltos entre linhas
+do atlas. A oscilação artificial foi removida. A altura das patas entre
+as 16 poses varia menos de 3 pixels no espaço lógico de 400x240.
