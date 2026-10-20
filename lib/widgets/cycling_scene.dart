@@ -5,6 +5,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../scene_weather.dart';
+import 'weather_characters.dart';
+
 /// Cenário dinâmico com animação de sprites locais do ciclista e de um Terra Nova.
 class CyclingScene extends StatefulWidget {
   const CyclingScene({
@@ -128,9 +131,10 @@ class _CyclingSceneState extends State<CyclingScene>
                 ? 'Avenida arborizada'
                 : 'Bairro residencial')
         : _environment;
+    final appearance = SceneWeather(temperature: widget.temperature, code: widget.weatherCode);
     final scene = Semantics(
       label: 'Rapaz pedalando com um cachorro Terra Nova correndo ao lado em ${widget.locationName}. $environment. $period. $climate. '
-          '${widget.temperature.round()} graus Celsius.',
+          '${widget.temperature.round()} graus Celsius. ${appearance.description}',
       image: true,
       child: ExcludeSemantics(
         child: ClipRRect(
@@ -153,11 +157,11 @@ class _CyclingSceneState extends State<CyclingScene>
                     ),
                   ),
                 ),
-                if (_dogSpriteError)
+                if (_dogSpriteError && !appearance.rain && !appearance.snow)
                   const Positioned(bottom: 8, right: 8,
                     child: Text('Não foi possível carregar o cachorro.',
                       style: TextStyle(color: Colors.white, fontSize: 11))),
-                if (_spriteError)
+                if (_spriteError && appearance.outfit == CyclingOutfit.regular)
                   const Center(child: Text('Não foi possível carregar o ciclista.')),
                 Positioned(
                   top: 16,
@@ -223,9 +227,9 @@ class _CyclingPainter extends CustomPainter {
     final twilight = !night && (hour < 7 || hour >= 17);
     final cold = temperature < 15;
     final hot = temperature >= 28;
-    final rain = (code >= 51 && code <= 67) ||
-        (code >= 80 && code <= 82) || code >= 95;
-    final snow = (code >= 71 && code <= 77) || code == 85 || code == 86;
+    final weather = SceneWeather(temperature: temperature, code: code);
+    final rain = weather.rain;
+    final snow = weather.snow;
     final cloudy = code >= 2;
     // Interpolação por minuto evita saltos de cor entre os períodos.
     final daylight = hour < 5 || hour >= 19
@@ -268,7 +272,7 @@ class _CyclingPainter extends CustomPainter {
           const Color(0xFFFFDE89));
     }
 
-    _paintCity(canvas, t, daylight);
+    _paintCity(canvas, t, daylight, snow: snow);
     if (cloudy || cold) {
       for (var i = 0; i < (rain ? 5 : 3); i++) {
         final x = (i * 143 + 440 - t * 48) % 510 - 55;
@@ -287,8 +291,26 @@ class _CyclingPainter extends CustomPainter {
       line(Offset(x, 223), Offset(x + 28, 223), const Color(0xBBDDE8D8), 3);
     }
 
+    if (snow) {
+      line(const Offset(0, 201), const Offset(400, 201), const Color(0xFFE6F2FA), 7);
+      for (var i = 0; i < 8; i++) {
+        final x = (i * 70 - t * 560) % 560 - 70;
+        canvas.drawOval(Rect.fromLTWH(x, 231, 30, 5),
+            Paint()..color = const Color(0x99D9EAF2));
+      }
+      _paintSnow(canvas, t, foreground: false);
+    } else if (rain) {
+      for (var i = 0; i < 5; i++) {
+        final x = (i * 112 - t * 560) % 560 - 70;
+        canvas.drawOval(Rect.fromLTWH(x, 207.0 + (i % 2) * 21, 42, 4),
+            Paint()..color = const Color(0x668CC6DA));
+      }
+    }
     final image = sprite;
-    if (image != null) {
+    if (weather.outfit != CyclingOutfit.regular) {
+      WeatherCharacters.cyclist(canvas, const Rect.fromLTWH(119, 89, 150, 125),
+          t, weather.outfit, snow: snow);
+    } else if (image != null) {
       final frame = (t * 64).floor() % 8;
       final cellWidth = image.width / 4;
       final cellHeight = image.height / 2;
@@ -303,7 +325,10 @@ class _CyclingPainter extends CustomPainter {
       );
     }
     final dog = dogSprite;
-    if (dog != null) {
+    if (rain || snow) {
+      WeatherCharacters.dog(canvas, const Rect.fromLTWH(283, 149, 100, 75), t,
+          wet: rain, snow: snow);
+    } else if (dog != null) {
       // Dezesseis quadros por segundo: duas passadas completas por segundo.
       final frame = (t * 128).floor() % 8;
       final cellWidth = dog.width / 4;
@@ -317,15 +342,13 @@ class _CyclingPainter extends CustomPainter {
         Paint()..filterQuality = FilterQuality.medium,
       );
     }
-    if (rain || snow) {
-      for (var i = 0; i < 45; i++) {
-        final x = (i * 73.0 - t * 120) % 420;
+    if (snow) {
+      _paintSnow(canvas, t, foreground: true);
+    } else if (rain) {
+      for (var i = 0; i < 65; i++) {
+        final x = (i * 73.0 - t * 420) % 420;
         final y = (i * 41.0 + t * 960) % 240;
-        if (snow) {
-          circle(Offset(x, y), 2, const Color(0xCCFFFFFF));
-        } else {
-          line(Offset(x, y), Offset(x - 4, y + 10), const Color(0x8879C9F2), 1.4);
-        }
+        line(Offset(x, y), Offset(x - 4, y + 10), const Color(0x9979C9F2), 1.4);
       }
     }
     if (code == 45 || code == 48) {
@@ -334,7 +357,26 @@ class _CyclingPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _paintCity(Canvas canvas, double t, double daylight) {
+  void _paintSnow(Canvas canvas, double t, {required bool foreground}) {
+    final count = foreground ? 36 : 44;
+    final color = foreground ? const Color(0xEFFFFFFF) : const Color(0x99DCEAF5);
+    for (var i = 0; i < count; i++) {
+      final x = (i * 73.0 - t * 440 + math.sin(t * math.pi * 8 + i) * 9) % 440 - 20;
+      final y = (i * 41.0 + t * (foreground ? 780 : 520)) % 260 - 10;
+      final radius = foreground ? 2.0 + (i % 3) * 0.6 : 1.0 + (i % 2) * 0.4;
+      canvas.drawCircle(Offset(x, y), radius, Paint()..color = color);
+      if (foreground && i % 4 == 0) {
+        for (var arm = 0; arm < 3; arm++) {
+          final angle = arm * math.pi / 3;
+          final delta = Offset(math.cos(angle), math.sin(angle)) * (radius + 1.5);
+          canvas.drawLine(Offset(x, y) - delta, Offset(x, y) + delta,
+              Paint()..color = color..strokeWidth = 0.8);
+        }
+      }
+    }
+  }
+
+  void _paintCity(Canvas canvas, double t, double daylight, {required bool snow}) {
     Color lit(Color day, Color dark) => Color.lerp(dark, day, daylight)!;
     void rect(double x, double y, double w, double h, Color color) {
       canvas.drawRect(Rect.fromLTWH(x, y, w, h), Paint()..color = color);
@@ -384,6 +426,13 @@ class _CyclingPainter extends CustomPainter {
         rect(x - 2, 162, 64, 6, lit(
             const Color(0xFFBD7967), const Color(0xFF6C4C60)));
       }
+      if (snow) {
+        final cap = Path()..moveTo(x - 3, top)
+          ..lineTo(x + 31, residential ? top - 18 : top)
+          ..lineTo(x + 65, top);
+        canvas.drawPath(cap, Paint()..color = const Color(0xFFEAF4FC)
+          ..style = PaintingStyle.stroke..strokeWidth = 4..strokeCap = StrokeCap.round);
+      }
       for (var row = 0; row < (residential ? 1 : avenue ? 3 : 5); row++) {
         for (var col = 0; col < 3; col++) {
           rect(x + 7 + col * 13, top + 10 + row * 12, 7, 7,
@@ -399,8 +448,14 @@ class _CyclingPainter extends CustomPainter {
         line(x + 34, 191, x + 34, 151, shadow, 4);
         final leaf = lit(const Color(0xFF4B8E72), const Color(0xFF264B4C));
         for (var crown = 0; crown < 3; crown++) {
-          canvas.drawCircle(Offset(x + 22 + crown * 12, 149 - (crown % 2) * 9),
+          canvas.drawCircle(Offset(x + 22 + crown * 12, 149.0 - (crown % 2) * 9),
               avenue ? 18 : 12, Paint()..color = leaf);
+          if (snow) {
+            canvas.drawOval(Rect.fromCenter(
+                center: Offset(x + 22 + crown * 12, 139.0 - (crown % 2) * 9),
+                width: avenue ? 26 : 17, height: 5),
+                Paint()..color = const Color(0xFFE2EFF8));
+          }
         }
       }
       // Postes e luzes acendem gradualmente ao anoitecer.

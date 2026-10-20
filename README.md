@@ -114,3 +114,24 @@ Chuva, neve e nevoeiro continuam seguindo o código meteorológico da API.
 Os fundos usam desenho vetorial local, dispensando o atlas anterior de
 ambientes. Ciclista e cachorro mantêm seus sprites e a opção de reduzir
 animações do sistema pausa o movimento, preservando a atualização do horário.
+
+## Frio, neve e chuva na animação
+
+Com temperatura abaixo de 15°C ou com código de neve, o ciclista usa casaco,
+calça comprida, luvas, botas e cachecol. Na chuva e na garoa, usa impermeável
+com capuz, faixa refletiva, calça e luvas. São versões vetoriais locais com
+pedalada e rodas animadas; em clima ameno ou quente sem precipitação, o app
+continua exibindo o sprite original do ciclista.
+
+A neve usa os códigos WMO 71, 73, 75, 77, 85 e 86, com flocos de tamanhos e
+velocidades diferentes, oscilação lateral e camadas à frente e atrás dos
+personagens. Telhados, árvores e calçada recebem neve. O cachorro usa uma
+versão vetorial com neve no dorso e na cabeça acompanhando a corrida.
+Temperatura baixa, sozinha, muda a roupa e não produz neve.
+
+Chuva, garoa e trovoadas ativam gotas, poças e a versão vetorial do cachorro
+com pelo mais escuro e achatado, reflexos e gotas escorrendo. Fora da chuva
+e da neve, o cachorro volta ao sprite original. Esses visuais representam a
+condição atual; não simulam o tempo real necessário para acumular ou derreter
+neve nem para secar o pelo. Reduzir animações pausa também flocos, gotas e
+movimentos dos personagens, mantendo a representação estática do clima.
