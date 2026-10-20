@@ -54,3 +54,8 @@ A animação respeita a configuração do sistema para reduzir animações.
 
 Após adicionar o asset, execute `flutter pub get` e reinicie o app completamente;
 apenas hot reload pode não incluir o arquivo novo no bundle.
+
+O cachorro Terra Nova usa oito sprites transparentes em
+assets/animations/newfoundland-running.png, reproduzidos a 16 fps ao lado
+do ciclista. Os dois assets são carregados separadamente e compartilham
+o relógio de animação da cena; reduzir animações pausa ambos.

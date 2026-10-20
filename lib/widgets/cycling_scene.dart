@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-/// Cenário dinâmico com animação de oito sprites locais do ciclista.
+/// Cenário dinâmico com animação de sprites locais do ciclista e de um Terra Nova.
 class CyclingScene extends StatefulWidget {
   const CyclingScene({
     super.key,
@@ -25,13 +25,16 @@ class _CyclingSceneState extends State<CyclingScene>
   late final AnimationController _motion;
   Timer? _clock;
   ui.Image? _sprite;
+  ui.Image? _dogSprite;
   bool _spriteError = false;
+  bool _dogSpriteError = false;
   DateTime _time = DateTime.now().toUtc().subtract(const Duration(hours: 3));
 
   @override
   void initState() {
     super.initState();
-    _loadSprite();
+    _loadSprite('assets/animations/cyclist-pedaling.png');
+    _loadSprite('assets/animations/newfoundland-running.png', dog: true);
     _motion = AnimationController(vsync: this, duration: const Duration(seconds: 8));
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       setState(() {
@@ -40,9 +43,9 @@ class _CyclingSceneState extends State<CyclingScene>
     });
   }
 
-  Future<void> _loadSprite() async {
+  Future<void> _loadSprite(String asset, {bool dog = false}) async {
     try {
-      final bytes = await rootBundle.load('assets/animations/cyclist-pedaling.png');
+      final bytes = await rootBundle.load(asset);
       final codec = await ui.instantiateImageCodec(bytes.buffer.asUint8List(
         bytes.offsetInBytes, bytes.lengthInBytes,
       ));
@@ -52,12 +55,26 @@ class _CyclingSceneState extends State<CyclingScene>
           frame.image.dispose();
           return;
         }
-        setState(() => _sprite = frame.image);
+        setState(() {
+          if (dog) {
+            _dogSprite = frame.image;
+          } else {
+            _sprite = frame.image;
+          }
+        });
       } finally {
         codec.dispose();
       }
     } catch (_) {
-      if (mounted) setState(() => _spriteError = true);
+      if (mounted) {
+        setState(() {
+          if (dog) {
+            _dogSpriteError = true;
+          } else {
+            _spriteError = true;
+          }
+        });
+      }
     }
   }
   @override
@@ -75,6 +92,7 @@ class _CyclingSceneState extends State<CyclingScene>
     _clock?.cancel();
     _motion.dispose();
     _sprite?.dispose();
+    _dogSprite?.dispose();
     super.dispose();
   }
 
@@ -94,7 +112,7 @@ class _CyclingSceneState extends State<CyclingScene>
             ? 'Calor'
             : 'Clima ameno';
     return Semantics(
-      label: 'Rapaz pedalando em Santo André. $period. $climate. '
+      label: 'Rapaz pedalando com um cachorro Terra Nova correndo ao lado em Santo André. $period. $climate. '
           '${widget.temperature.round()} graus Celsius.',
       image: true,
       child: ExcludeSemantics(
@@ -110,12 +128,17 @@ class _CyclingSceneState extends State<CyclingScene>
                     painter: _CyclingPainter(
                       motion: _motion,
                       sprite: _sprite,
+                      dogSprite: _dogSprite,
                       hour: hour,
                       temperature: widget.temperature,
                       code: widget.weatherCode,
                     ),
                   ),
                 ),
+                if (_dogSpriteError)
+                  const Positioned(bottom: 8, right: 8,
+                    child: Text('Não foi possível carregar o cachorro.',
+                      style: TextStyle(color: Colors.white, fontSize: 11))),
                 if (_spriteError)
                   const Center(child: Text('Não foi possível carregar o ciclista.')),
                 Positioned(
@@ -144,10 +167,11 @@ class _CyclingSceneState extends State<CyclingScene>
 
 class _CyclingPainter extends CustomPainter {
   _CyclingPainter({required this.motion, required this.hour,
-    required this.temperature, required this.code, required this.sprite}) : super(repaint: motion);
+    required this.temperature, required this.code, required this.sprite, required this.dogSprite}) : super(repaint: motion);
 
   final Animation<double> motion;
   final ui.Image? sprite;
+  final ui.Image? dogSprite;
   final double hour;
   final double temperature;
   final int code;
@@ -253,6 +277,21 @@ class _CyclingPainter extends CustomPainter {
         Paint()..filterQuality = FilterQuality.medium,
       );
     }
+    final dog = dogSprite;
+    if (dog != null) {
+      // Dezesseis quadros por segundo: duas passadas completas por segundo.
+      final frame = (t * 128).floor() % 8;
+      final cellWidth = dog.width / 4;
+      final cellHeight = dog.height / 2;
+      final source = Rect.fromLTWH(
+        (frame % 4) * cellWidth, (frame ~/ 4) * cellHeight,
+        cellWidth, cellHeight,
+      );
+      canvas.drawImageRect(dog, source,
+        Rect.fromLTWH(276, 75, 110, 110 * cellHeight / cellWidth),
+        Paint()..filterQuality = FilterQuality.medium,
+      );
+    }
     if (rain || snow) {
       for (var i = 0; i < 45; i++) {
         final x = (i * 73.0 - t * 120) % 420;
@@ -274,5 +313,5 @@ class _CyclingPainter extends CustomPainter {
   bool shouldRepaint(covariant _CyclingPainter oldDelegate) =>
       oldDelegate.hour != hour || oldDelegate.temperature != temperature ||
       oldDelegate.code != code || oldDelegate.motion != motion ||
-      oldDelegate.sprite != sprite;
+      oldDelegate.sprite != sprite || oldDelegate.dogSprite != dogSprite;
 }
