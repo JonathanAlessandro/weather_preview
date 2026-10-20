@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'weather_service.dart';
+import 'location_service.dart';
 import 'widgets/cycling_scene.dart';
 import 'widgets/item_detalhe.dart';
 import 'widgets/titulo_secao.dart';
@@ -8,9 +9,10 @@ import 'widgets/titulo_secao.dart';
 void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key, this.service});
+  const MyApp({super.key, this.service, this.locationService});
 
   final WeatherService? service;
+  final LocationService? locationService;
 
   @override
   Widget build(BuildContext context) {
@@ -19,15 +21,17 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF1565C0)),
       ),
-      home: WeatherPage(service: service ?? WeatherService()),
+      home: WeatherPage(service: service ?? WeatherService(),
+        locationService: locationService ?? LocationService()),
     );
   }
 }
 
 class WeatherPage extends StatefulWidget {
-  const WeatherPage({super.key, required this.service});
+  const WeatherPage({super.key, required this.service, required this.locationService});
 
   final WeatherService service;
+  final LocationService locationService;
 
   @override
   State<WeatherPage> createState() => _WeatherPageState();
@@ -37,6 +41,9 @@ class _WeatherPageState extends State<WeatherPage> {
   WeatherData? _weather;
   bool _loading = false;
   String? _error;
+  String? _locationMessage;
+  WeatherLocation _place = WeatherLocation.santoAndre;
+  bool _usingLocation = true;
 
   @override
   void initState() {
@@ -44,15 +51,36 @@ class _WeatherPageState extends State<WeatherPage> {
     _refresh();
   }
 
-  Future<void> _refresh() async {
+  Future<void> _refresh({bool locate = false}) async {
     if (_loading) return;
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final weather = await widget.service.fetch();
-      if (mounted) setState(() => _weather = weather);
+      var place = _place;
+      var usingLocation = _usingLocation;
+      String? locationMessage;
+      if (locate || _usingLocation) {
+        try {
+          place = await widget.locationService.current();
+          usingLocation = true;
+        } on LocationException catch (error) {
+          usingLocation = false;
+          locationMessage = '${error.message} Exibindo a previsão de ${_place.label}.';
+        }
+      }
+      final weather = await widget.service.fetch(location: place);
+      if (mounted) {
+        setState(() {
+          _weather = weather;
+          _place = place;
+          _usingLocation = usingLocation;
+          if (locationMessage != null || usingLocation) {
+            _locationMessage = locationMessage;
+          }
+        });
+      }
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -67,10 +95,11 @@ class _WeatherPageState extends State<WeatherPage> {
 
   String _number(double value) => value.toStringAsFixed(0);
 
-  String _updated(DateTime time) {
+  String _updated(WeatherData weather) {
+    final time = weather.time;
     String pad(int n) => n.toString().padLeft(2, '0');
     return '${pad(time.day)}/${pad(time.month)}/${time.year} '
-        'às ${pad(time.hour)}:${pad(time.minute)} (horário de Brasília)';
+        'às ${pad(time.hour)}:${pad(time.minute)} (${weather.timezone})';
   }
 
   IconData _icon(int code) {
@@ -100,8 +129,14 @@ class _WeatherPageState extends State<WeatherPage> {
           padding: const EdgeInsets.all(16),
           children: [
             const TituloSecao(titulo: 'Cidade'),
-            const Text('Santo André, SP',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            Text(_place.label,
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+            TextButton.icon(
+              onPressed: _loading ? null : () => _refresh(locate: true),
+              icon: const Icon(Icons.my_location),
+              label: const Text('Usar minha localização'),
+            ),
+            if (_locationMessage != null) Text(_locationMessage!),
             if (_loading) ...[
               const SizedBox(height: 16),
               const LinearProgressIndicator(),
@@ -115,7 +150,8 @@ class _WeatherPageState extends State<WeatherPage> {
             ],
             if (weather != null) ...[
               const SizedBox(height: 16),
-              CyclingScene(temperature: weather.temperature, weatherCode: weather.code),
+              CyclingScene(temperature: weather.temperature, weatherCode: weather.code,
+                locationName: _place.label, utcOffsetSeconds: weather.utcOffsetSeconds),
               const Divider(),
               const TituloSecao(titulo: 'Temperatura atual'),
               Text('${_number(weather.temperature)}°C',
@@ -146,7 +182,7 @@ class _WeatherPageState extends State<WeatherPage> {
                 ],
               ),
               const Divider(),
-              Text('Dados de ${_updated(weather.time)}'),
+              Text('Dados de ${_updated(weather)}'),
             ],
             const SizedBox(height: 16),
             ElevatedButton(

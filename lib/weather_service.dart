@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'location_service.dart';
+
 class WeatherData {
   const WeatherData({
     required this.time,
@@ -13,6 +15,8 @@ class WeatherData {
     required this.minimum,
     required this.maximum,
     required this.rainChance,
+    this.utcOffsetSeconds = -10800,
+    this.timezone = 'America/Sao_Paulo',
   });
 
   factory WeatherData.fromJson(Map<String, dynamic> json) {
@@ -30,6 +34,8 @@ class WeatherData {
       minimum: day('temperature_2m_min'),
       maximum: day('temperature_2m_max'),
       rainChance: day('precipitation_probability_max'),
+      utcOffsetSeconds: (json['utc_offset_seconds'] as num?)?.toInt() ?? -10800,
+      timezone: json['timezone'] as String? ?? 'America/Sao_Paulo',
     );
   }
 
@@ -42,6 +48,8 @@ class WeatherData {
   final double minimum;
   final double maximum;
   final double rainChance;
+  final int utcOffsetSeconds;
+  final String timezone;
 
   String get condition => switch (code) {
     0 => 'Céu limpo',
@@ -59,18 +67,18 @@ class WeatherData {
 }
 
 class WeatherService {
-  Future<WeatherData> fetch() async {
+  Future<WeatherData> fetch({WeatherLocation location = WeatherLocation.santoAndre}) async {
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 15);
     try {
       return await (() async {
         final uri = Uri.https('api.open-meteo.com', '/v1/forecast', {
-          'latitude': '-23.6639',
-          'longitude': '-46.5383',
+          'latitude': location.latitude.toString(),
+          'longitude': location.longitude.toString(),
           'current': 'temperature_2m,apparent_temperature,relative_humidity_2m,'
               'wind_speed_10m,weather_code',
           'daily': 'temperature_2m_min,temperature_2m_max,'
               'precipitation_probability_max',
-          'timezone': 'America/Sao_Paulo',
+          'timezone': 'auto',
           'forecast_days': '1',
           'temperature_unit': 'celsius',
           'wind_speed_unit': 'kmh',

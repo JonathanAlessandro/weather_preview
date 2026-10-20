@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:weather_preview/main.dart';
+import 'package:weather_preview/location_service.dart';
 import 'package:weather_preview/weather_service.dart';
 
 Map<String, dynamic> fixture() => {
@@ -22,12 +23,25 @@ Map<String, dynamic> fixture() => {
 class FakeWeatherService extends WeatherService {
   bool fail = false;
   int calls = 0;
+  WeatherLocation? requestedLocation;
 
   @override
-  Future<WeatherData> fetch() async {
+  Future<WeatherData> fetch({WeatherLocation location = WeatherLocation.santoAndre}) async {
     calls++;
+    requestedLocation = location;
     if (fail) throw Exception('offline');
     return WeatherData.fromJson(fixture());
+  }
+}
+
+class FakeLocationService extends LocationService {
+  WeatherLocation location = WeatherLocation.santoAndre;
+  bool fail = false;
+
+  @override
+  Future<WeatherLocation> current() async {
+    if (fail) throw const LocationException('Localização não autorizada.');
+    return location;
   }
 }
 
@@ -51,7 +65,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final service = FakeWeatherService();
-    await tester.pumpWidget(MyApp(service: service));
+    await tester.pumpWidget(MyApp(service: service, locationService: FakeLocationService()));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.text('21°C'), findsOneWidget);
     expect(find.text('Nublado'), findsOneWidget);
@@ -71,7 +85,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     final service = FakeWeatherService()..fail = true;
-    await tester.pumpWidget(MyApp(service: service));
+    await tester.pumpWidget(MyApp(service: service, locationService: FakeLocationService()));
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.textContaining('Não foi possível'), findsOneWidget);
     expect(find.text('21°C'), findsNothing);

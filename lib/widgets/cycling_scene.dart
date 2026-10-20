@@ -12,12 +12,16 @@ class CyclingScene extends StatefulWidget {
     required this.temperature,
     required this.weatherCode,
     this.time,
+    this.locationName = 'Santo André, SP',
+    this.utcOffsetSeconds = -10800,
   });
 
   final double temperature;
   final int weatherCode;
+  final String locationName;
+  final int utcOffsetSeconds;
 
-  /// Horário de Brasília fixo para prévias; por padrão acompanha o relógio.
+  /// Horário local fixo para prévias; por padrão acompanha o relógio.
   final DateTime? time;
 
   @override
@@ -33,7 +37,7 @@ class _CyclingSceneState extends State<CyclingScene>
   String _environment = 'Automático';
   bool _spriteError = false;
   bool _dogSpriteError = false;
-  DateTime _time = DateTime.now().toUtc().subtract(const Duration(hours: 3));
+  DateTime _time = DateTime.now().toUtc();
 
   @override
   void initState() {
@@ -43,7 +47,7 @@ class _CyclingSceneState extends State<CyclingScene>
     _motion = AnimationController(vsync: this, duration: const Duration(seconds: 8));
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       setState(() {
-        _time = DateTime.now().toUtc().subtract(const Duration(hours: 3));
+        _time = DateTime.now().toUtc();
       });
     });
   }
@@ -103,7 +107,7 @@ class _CyclingSceneState extends State<CyclingScene>
 
   @override
   Widget build(BuildContext context) {
-    final time = widget.time ?? _time;
+    final time = widget.time ?? _time.add(Duration(seconds: widget.utcOffsetSeconds));
     final hour = time.hour + time.minute / 60;
     final period = hour < 5 || hour >= 19
         ? 'Noite'
@@ -125,7 +129,7 @@ class _CyclingSceneState extends State<CyclingScene>
                 : 'Bairro residencial')
         : _environment;
     final scene = Semantics(
-      label: 'Rapaz pedalando com um cachorro Terra Nova correndo ao lado em Santo André. $environment. $period. $climate. '
+      label: 'Rapaz pedalando com um cachorro Terra Nova correndo ao lado em ${widget.locationName}. $environment. $period. $climate. '
           '${widget.temperature.round()} graus Celsius.',
       image: true,
       child: ExcludeSemantics(
