@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:weather_preview/widgets/cycling_scene.dart';
+import 'package:weather_preview/widgets/scene/cycling_scene.dart';
 
 void main() {
   Widget scene(int hour, {double temperature = 21, int code = 0}) {

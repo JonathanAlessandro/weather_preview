@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../scene_weather.dart';
+import '../../scene/scene_weather.dart';
 
 /// Versões vetoriais locais: a roupa e o pelo acompanham as articulações.
 class WeatherCharacters {

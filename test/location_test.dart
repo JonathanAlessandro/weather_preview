@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:weather_preview/location_service.dart';
 import 'package:weather_preview/main.dart';
-import 'package:weather_preview/weather_service.dart';
+import 'package:weather_preview/models/weather_data.dart';
+import 'package:weather_preview/models/weather_location.dart';
+import 'package:weather_preview/services/location_service.dart';
 
-import 'weather_test.dart' show FakeLocationService, FakeWeatherService, fixture;
+import 'support/weather_fakes.dart' show FakeLocationService, FakeWeatherService, fixture;
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

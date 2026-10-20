@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'location_service.dart';
+import '../models/weather_location.dart';
 
 class LocationSearchService {
   Future<List<WeatherLocation>> search(String query) async {

@@ -2,8 +2,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:weather_preview/scene_weather.dart';
-import 'package:weather_preview/widgets/weather_characters.dart';
+import 'package:weather_preview/scene/scene_weather.dart';
+import 'package:weather_preview/widgets/scene/weather_characters.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

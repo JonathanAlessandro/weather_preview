@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../location_search_service.dart';
-import '../location_service.dart';
+import '../models/weather_location.dart';
+import '../services/location_search_service.dart';
 
 class LocationSearchDialog extends StatefulWidget {
   const LocationSearchDialog({super.key, required this.service});

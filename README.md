@@ -135,3 +135,39 @@ e da neve, o cachorro volta ao sprite original. Esses visuais representam a
 condição atual; não simulam o tempo real necessário para acumular ou derreter
 neve nem para secar o pelo. Reduzir animações pausa também flocos, gotas e
 movimentos dos personagens, mantendo a representação estática do clima.
+
+## Organização do monólito
+
+O projeto continua sendo um único aplicativo Flutter, com um único pubspec,
+um único processo e um único build Android. Execute normalmente com
+`flutter run` (ponto de entrada `lib/main.dart`). Não há pacotes independentes,
+microsserviços ou outro backend para iniciar.
+
+```text
+lib/
+  main.dart                     # Inicia o app e conecta as dependências
+  models/                       # WeatherData e WeatherLocation, sem Flutter
+  services/                     # Open-Meteo, geocodificação e localização Android
+  controllers/
+    weather_controller.dart     # Estado, atualização, seleção e tratamento de falhas
+  screens/
+    weather_page.dart           # Tela que apresenta o estado e encaminha ações
+  scene/
+    scene_weather.dart          # Regras de roupa e precipitação pelos códigos WMO
+  widgets/
+    location_header.dart        # Cidade, busca e botão de localização
+    location_search_dialog.dart # Interface de pesquisa de cidades
+    weather_report.dart         # Temperatura, condição e detalhes da previsão
+    scene/
+      cycling_scene.dart        # Relógio, sprites e ciclo de vida da animação
+      cycling_painter.dart      # Desenho do céu, cidade e precipitação
+      weather_characters.dart   # Desenho dos personagens de inverno e chuva
+```
+
+A `main.dart` cria e descarta o controlador e conecta os serviços à tela.
+O controlador coordena as consultas e publica cidade e previsão juntas;
+os widgets cuidam da apresentação, sem executar requisições durante o build.
+Os modelos não dependem dos serviços. Os adaptadores Android permanecem em
+`android/app/src/main/kotlin/...` e os assets continuam no mesmo aplicativo.
+Os testes usam simuladores em `test/support/`, incluindo testes do controlador
+sem abrir uma tela ou acessar a rede.

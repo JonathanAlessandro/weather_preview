@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:weather_preview/location_search_service.dart';
-import 'package:weather_preview/location_service.dart';
 import 'package:weather_preview/main.dart';
+import 'package:weather_preview/models/weather_location.dart';
+import 'package:weather_preview/services/location_search_service.dart';
 import 'package:weather_preview/widgets/location_search_dialog.dart';
 
-import 'weather_test.dart' show FakeLocationService, FakeWeatherService;
+import 'support/weather_fakes.dart' show FakeLocationService, FakeWeatherService;
 
 const campinas = WeatherLocation(latitude: -22.9, longitude: -47.06,
     label: 'Campinas, São Paulo, Brasil');
