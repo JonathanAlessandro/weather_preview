@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/clima_atual.dart';
+import 'screens/detalhes_avancados.dart';
 import 'screens/previsao_semana.dart';
 
 void main() {
@@ -48,6 +49,13 @@ class HomeScreen extends StatelessWidget {
               MaterialPageRoute(builder: (_) => const PrevisaoSemanaScreen()),
             ),
             child: const Text('Previsão da semana'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const DetalhesAvancadosScreen()),
+            ),
+            child: const Text('Detalhes avançados'),
           ),
         ],
       ),
