@@ -89,7 +89,11 @@ class ClimaAtualScreen extends StatelessWidget {
           const TituloSecao(titulo: 'Atualização'),
           Center(
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Dados atualizados!')),
+                );
+              },
               child: const Text('Atualizar'),
             ),
           ),

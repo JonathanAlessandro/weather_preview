@@ -2,6 +2,44 @@ import 'package:flutter/material.dart';
 
 import '../widgets/titulo_secao.dart';
 
+const List<Map<String, dynamic>> _previsaoSemana = [
+  {
+    'dia': 'Sexta',
+    'icone': Icons.wb_sunny,
+    'cor': Colors.orange,
+    'minima': '19°C',
+    'maxima': '30°C',
+  },
+  {
+    'dia': 'Sábado',
+    'icone': Icons.cloud,
+    'cor': Colors.blueGrey,
+    'minima': '18°C',
+    'maxima': '27°C',
+  },
+  {
+    'dia': 'Domingo',
+    'icone': Icons.umbrella,
+    'cor': Colors.indigo,
+    'minima': '17°C',
+    'maxima': '24°C',
+  },
+  {
+    'dia': 'Segunda',
+    'icone': Icons.cloud,
+    'cor': Colors.blueGrey,
+    'minima': '18°C',
+    'maxima': '26°C',
+  },
+  {
+    'dia': 'Terça',
+    'icone': Icons.wb_sunny,
+    'cor': Colors.orange,
+    'minima': '19°C',
+    'maxima': '31°C',
+  },
+];
+
 class PrevisaoSemanaScreen extends StatelessWidget {
   const PrevisaoSemanaScreen({super.key});
 
@@ -68,60 +106,28 @@ class PrevisaoSemanaScreen extends StatelessWidget {
           ),
           const Divider(),
           const TituloSecao(titulo: 'Próximos dias'),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: Text('Sexta')),
-                Icon(Icons.wb_sunny, size: 28, color: Colors.orange),
-                Expanded(child: Text('19°C')),
-                Expanded(child: Text('30°C')),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: Text('Sábado')),
-                Icon(Icons.cloud, size: 28, color: Colors.blueGrey),
-                Expanded(child: Text('18°C')),
-                Expanded(child: Text('27°C')),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: Text('Domingo')),
-                Icon(Icons.umbrella, size: 28, color: Colors.indigo),
-                Expanded(child: Text('17°C')),
-                Expanded(child: Text('24°C')),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: Text('Segunda')),
-                Icon(Icons.cloud, size: 28, color: Colors.blueGrey),
-                Expanded(child: Text('18°C')),
-                Expanded(child: Text('26°C')),
-              ],
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                Expanded(flex: 2, child: Text('Terça')),
-                Icon(Icons.wb_sunny, size: 28, color: Colors.orange),
-                Expanded(child: Text('19°C')),
-                Expanded(child: Text('31°C')),
-              ],
-            ),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _previsaoSemana.length,
+            itemBuilder: (context, index) {
+              final dia = _previsaoSemana[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Expanded(flex: 2, child: Text(dia['dia'] as String)),
+                    Icon(
+                      dia['icone'] as IconData,
+                      size: 28,
+                      color: dia['cor'] as Color,
+                    ),
+                    Expanded(child: Text(dia['minima'] as String)),
+                    Expanded(child: Text(dia['maxima'] as String)),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
